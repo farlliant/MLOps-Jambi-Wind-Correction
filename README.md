@@ -1,214 +1,108 @@
-\# Jambi Wind Correction MLOps
+# Jambi Wind Correction MLOps
 
+MLOps project for short-term wind speed forecast correction in Jambi, Indonesia, using ECMWF IFS forecasts and machine learning.
 
+## Overview
 
-Proyek Machine Learning Operations (MLOps) untuk melakukan post-processing dan koreksi prediksi kecepatan angin jangka pendek ECMWF IFS di Kota Jambi menggunakan machine learning.
+Raw forecasts are obtained from **ECMWF IFS** through the Open-Meteo Single Runs API, while **ECMWF IFS Analysis** is used as the initial reference.
 
-
-
-\## Project Overview
-
-
-
-ECMWF IFS digunakan sebagai sumber raw forecast, sedangkan ECMWF IFS Analysis digunakan sebagai reference.
-
-
-
-Pendekatan machine learning digunakan untuk memprediksi residual:
-
-
+Machine learning target:
 
 ```text
-
-residual = reference\_wind\_speed - forecast\_wind\_speed
-
+residual = reference_wind_speed - forecast_wind_speed
 ```
 
-
-
-Prediksi kecepatan angin yang telah dikoreksi kemudian dihitung sebagai:
-
-
+Corrected forecast:
 
 ```text
-
-corrected\_wind = forecast\_wind + predicted\_residual
-
+corrected_wind = forecast_wind + predicted_residual
 ```
 
+Forecast lead times:
 
+- +6 hours
+- +12 hours
+- +18 hours
+- +24 hours
 
-\## Forecast Horizons
-
-
-
-Model lead yang digunakan:
-
-
-
-\- +6 jam
-
-\- +12 jam
-
-\- +18 jam
-
-\- +24 jam
-
-
-
-\## Project Structure
-
-
+## Project Structure
 
 ```text
-
 jambi-wind-correction-mlops/
-
 ├── data/
-
 │   ├── raw/
-
 │   ├── processed/
-
 │   └── reports/
-
 ├── src/
-
 │   ├── data/
-
-│   │   ├── test\_single\_run.py
-
-│   │   ├── test\_reference.py
-
-│   │   └── build\_poc\_dataset.py
-
+│   │   ├── test_single_run.py
+│   │   ├── test_reference.py
+│   │   └── build_poc_dataset.py
 │   └── models/
-
-│       └── sanity\_residual\_correction.py
-
+│       └── sanity_residual_correction.py
 ├── .gitignore
-
-├── requirements.txt
-
-└── README.md
-
+├── README.md
+└── requirements.txt
 ```
 
+Generated datasets and reports are excluded from Git and will later be managed using a dedicated data versioning mechanism.
 
-
-\## Setup
-
-
-
-Create virtual environment:
-
-
+## Setup
 
 ```powershell
-
 python -m venv .venv
-
-```
-
-
-
-Activate the environment:
-
-
-
-```powershell
-
-.\\.venv\\Scripts\\Activate.ps1
-
-```
-
-
-
-Install dependencies:
-
-
-
-```powershell
-
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
 ```
 
-
-
-\## Run Proof-of-Concept
-
-
-
-Validate ECMWF IFS Single Runs:
-
-
+## Run PoC
 
 ```powershell
-
-python .\\src\\data\\test\_single\_run.py
-
+python .\src\data\test_single_run.py
+python .\src\data\test_reference.py
+python .\src\data\build_poc_dataset.py
+python .\src\models\sanity_residual_correction.py
 ```
 
+## Initial PoC Results
 
+Data period:
 
-Validate ECMWF IFS Analysis reference:
-
-
-
-```powershell
-
-python .\\src\\data\\test\_reference.py
-
+```text
+15 May 2026 - 15 August 2026
 ```
 
+Data validation results:
 
+```text
+Forecast runs requested : 372
+Successful runs         : 371
+Ingestion success rate  : 99.73%
 
-Build the forecast-reference dataset:
-
-
-
-```powershell
-
-python .\\src\\data\\build\_poc\_dataset.py
-
+Forecast-reference rows : 1484
+Valid critical rows     : 1460
+Critical completeness   : 98.38%
+Duplicate pairs         : 0
 ```
 
+The temporal sanity test showed a positive correction signal across all evaluated forecast lead times, with Random Forest producing the lowest MAE in the initial experiment.
 
+These results are still considered **proof-of-concept results**, not final production model performance.
 
-Run the temporal residual-correction sanity test:
+## MLOps Roadmap
 
+Planned components:
 
+- DVC for data versioning
+- MLflow for experiment tracking and model registry
+- Apache Airflow for orchestration
+- FastAPI for model serving
+- Docker for containerization
+- GitHub Actions for CI/CD
+- Evidently for drift monitoring
+- Prometheus and Grafana for system monitoring
+- Continuous training with champion-challenger validation
 
-```powershell
+## Disclaimer
 
-python .\\src\\models\\sanity\_residual\_correction.py
-
-```
-
-
-
-\## Current Status
-
-
-
-LK-01 / project initiation and proof-of-concept:
-
-
-
-\- ECMWF IFS Single Runs validated
-
-\- ECMWF IFS Analysis reference validated
-
-\- Forecast-reference pairing validated
-
-\- Data quality validation implemented
-
-\- Raw ECMWF baseline evaluated
-
-\- Temporal residual-correction sanity test completed
-
-
-
-Further MLOps components such as data versioning, experiment tracking, orchestration, model serving, monitoring, and continuous training will be implemented progressively in subsequent project stages.
-
+ECMWF IFS Analysis is used as an initial reference and is not treated as independent observational ground truth.
