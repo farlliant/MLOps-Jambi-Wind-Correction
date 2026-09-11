@@ -60,3 +60,14 @@ data/reports/*
 build/
 dist/
 *.egg-info/
+# ============================================
+# Intermediate Data
+# ============================================
+data/interim/*
+!data/interim/.gitkeep
+
+# ============================================
+# Model Artifacts
+# ============================================
+models/*
+!models/.gitkeep
