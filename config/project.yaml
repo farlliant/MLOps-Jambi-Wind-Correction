@@ -1,0 +1,24 @@
+project:
+  name: "Jambi Wind Correction MLOps"
+  location: "Jambi, Indonesia"
+
+location:
+  latitude: -1.633333
+  longitude: 103.650000
+  timezone: "Asia/Jakarta"
+
+forecast:
+  source: "ECMWF IFS via Open-Meteo Single Runs API"
+  target_variable: "wind_speed_10m"
+  lead_hours:
+    - 6
+    - 12
+    - 18
+    - 24
+
+reference:
+  source: "ECMWF IFS Analysis"
+
+machine_learning:
+  task: "supervised_regression"
+  target: "residual"
