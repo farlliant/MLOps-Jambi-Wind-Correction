@@ -4,7 +4,7 @@
 
 ## Overview
 
-`jambi-wind-correction-mlops` is a Machine Learning Operations (MLOps) project focused on improving short-term wind speed forecasts for Jambi, Indonesia.
+`MLOps-Jambi-Wind-Correction` is a Machine Learning Operations (MLOps) project focused on improving short-term wind speed forecasts for Jambi, Indonesia.
 
 Instead of predicting wind speed entirely from scratch, this project applies **machine-learning-based forecast correction**. Raw numerical weather prediction forecasts are obtained from ECMWF IFS, then a machine learning model learns historical forecast errors and estimates a correction for the original forecast.
 
@@ -341,7 +341,7 @@ Changes are merged into `main` only after validation.
 ## Repository Structure
 
 ```text
-jambi-wind-correction-mlops/
+MLOps-Jambi-Wind-Correction/
 │
 ├── .devcontainer/
 │   └── devcontainer.json
@@ -449,7 +449,7 @@ Separating configuration from source code reduces hard-coded project parameters 
 | Codespaces dependency validation | ✅ Completed |
 | GitHub Flow infrastructure branch | ✅ Completed |
 | MIT License | ✅ Completed |
-| LK02 Pull Request | 🚧 In progress |
+| LK02 Pull Request | ✅ Completed |
 | DVC data versioning | ⏳ Planned |
 | MLflow experiment tracking | ⏳ Planned |
 | Production model training | ⏳ Planned |
@@ -498,8 +498,8 @@ python -c "import numpy, pandas, requests, scipy, sklearn; print('Dependencies O
 Clone the repository:
 
 ```bash
-git clone https://github.com/farlliant/jambi-wind-correction-mlops.git
-cd jambi-wind-correction-mlops
+git clone https://github.com/farlliant/MLOps-Jambi-Wind-Correction.git
+cd MLOps-Jambi-Wind-Correction
 ```
 
 Create a virtual environment:
