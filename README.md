@@ -1,119 +1,22 @@
 # Jambi Wind Correction MLOps
 
-> An evolving MLOps project for short-term wind speed forecast correction in Jambi, Indonesia, using ECMWF IFS forecasts, machine learning, and a reproducible development workflow.
+> MLOps project for short-term wind speed forecast correction in Jambi, Indonesia, using ECMWF IFS forecasts and machine learning.
 
 ## Overview
 
-`MLOps-Jambi-Wind-Correction` is a Machine Learning Operations (MLOps) project focused on improving short-term wind speed forecasts for Jambi, Indonesia.
+This project develops an end-to-end MLOps workflow for improving short-term wind speed forecasts in Jambi, Indonesia.
 
-Instead of predicting wind speed entirely from scratch, this project applies **machine-learning-based forecast correction**. Raw numerical weather prediction forecasts are obtained from ECMWF IFS, then a machine learning model learns historical forecast errors and estimates a correction for the original forecast.
-
-The project is developed incrementally toward a complete MLOps workflow covering:
-
-- dynamic weather data ingestion,
-- data validation and forecast-reference pairing,
-- feature engineering,
-- model training and evaluation,
-- experiment and model tracking,
-- model serving,
-- performance and drift monitoring,
-- continuous training,
-- and reproducible development infrastructure.
-
----
-
-## Problem Formulation
-
-Numerical weather prediction models such as ECMWF IFS can still contain forecast errors caused by atmospheric variability, forecast horizon, local weather characteristics, and changes in upstream model behavior.
-
-This project formulates the problem as **supervised regression using residual correction**.
-
-For each forecast-reference pair:
+Instead of predicting wind speed entirely from scratch, the project applies **residual correction** to ECMWF IFS forecasts.
 
 ```text
 residual = reference_wind_speed - forecast_wind_speed
-```
 
-The machine learning model predicts the residual:
-
-```text
 predicted_residual = ML(features)
-```
 
-The final corrected forecast is calculated as:
-
-```text
 corrected_wind = forecast_wind + predicted_residual
 ```
 
-Therefore:
-
-- a **positive residual** indicates that the raw forecast tends to underestimate the reference;
-- a **negative residual** indicates that the raw forecast tends to overestimate the reference.
-
-The current project evaluates four short-term forecast horizons:
-
-```text
-+6 hours
-+12 hours
-+18 hours
-+24 hours
-```
-
----
-
-## Data Sources
-
-### Operational Forecast
-
-Raw forecasts are obtained from **ECMWF IFS** through the **Open-Meteo Single Runs API**.
-
-Single Runs allow each forecast to be represented using:
-
-- `run_time` — when the forecast model was initialized;
-- `valid_time` — the time being predicted;
-- `lead_time` — the forecast horizon.
-
-The current project focuses on `wind_speed_10m` as the main forecast variable.
-
-Additional meteorological variables can be used as model features, including:
-
-| Feature Group | Examples |
-|---|---|
-| Wind | wind speed, wind direction, wind gust |
-| Atmospheric | temperature, humidity, pressure |
-| Weather | cloud cover, precipitation |
-| Forecast metadata | lead time, run time |
-| Temporal | hour and seasonal cyclical features |
-
-### Reference Data
-
-The current proof-of-concept uses **ECMWF IFS Analysis** as the initial reference for forecast evaluation and residual construction.
-
-Forecast and reference data are paired using the same `valid_time`.
-
-> **Important:** ECMWF IFS Analysis is treated as a reference for the current project stage and is **not considered independent observational ground truth**.
-
----
-
-## Initial Proof-of-Concept
-
-An initial proof-of-concept was conducted using forecast runs from:
-
-```text
-15 May 2026 → 15 August 2026
-```
-
-Forecast runs were collected at:
-
-```text
-00 UTC
-06 UTC
-12 UTC
-18 UTC
-```
-
-for lead times:
+The current forecast horizons are:
 
 ```text
 +6h
@@ -122,7 +25,78 @@ for lead times:
 +24h
 ```
 
-### Data Quality Results
+The project is developed incrementally through the course assignments.
+
+```text
+LK01 → MLOps system design
+LK02 → repository and reproducible environment
+LK03 → dynamic data-pipeline design and technical preview
+LK04 → dynamic ingestion and automated preprocessing
+```
+
+---
+
+## Data Sources
+
+### Operational Forecast
+
+Forecast data is obtained from:
+
+**ECMWF IFS via Open-Meteo Single Runs API**
+
+Project location:
+
+```text
+Location  : Jambi, Indonesia
+Latitude  : -1.633333
+Longitude : 103.650000
+Timezone  : Asia/Jakarta
+```
+
+Meteorological variables currently collected include:
+
+- `wind_speed_10m`
+- `wind_direction_10m`
+- `wind_gusts_10m`
+- `temperature_2m`
+- `relative_humidity_2m`
+- `pressure_msl`
+- `cloud_cover`
+- `precipitation`
+
+Each forecast snapshot also stores:
+
+- `run_time`
+- `valid_time`
+- `retrieved_at`
+- `source`
+
+### Reference
+
+The current proof-of-concept uses **ECMWF IFS Analysis** as the forecast reference.
+
+> ECMWF IFS Analysis is used as a project reference and is **not treated as independent observational ground truth**.
+
+---
+
+## Initial Proof-of-Concept
+
+The initial experiment used ECMWF forecast runs from:
+
+```text
+15 May 2026 → 15 August 2026
+```
+
+with initialization cycles:
+
+```text
+00 UTC
+06 UTC
+12 UTC
+18 UTC
+```
+
+Initial data results:
 
 ```text
 Forecast runs requested : 372
@@ -135,206 +109,344 @@ Critical completeness   : 98.38%
 Duplicate pairs         : 0
 ```
 
-Critical forecast or reference values are not imputed. Invalid forecast-reference pairs are excluded from model evaluation.
-
----
-
-## Initial ML Feasibility Test
-
-The initial experiment compared several regression approaches:
+The initial residual-correction experiment evaluated:
 
 - Linear Regression
 - Random Forest
 - HistGradientBoosting
 
-A **temporal split** was used instead of random shuffling so that the model was trained on earlier observations and evaluated on later observations.
+A temporal split was used instead of random shuffling.
 
-The initial Random Forest experiment produced positive MAE improvement across all evaluated lead times, with an average improvement of approximately **12.42%** compared with the raw ECMWF forecast.
+The initial Random Forest proof-of-concept produced an average MAE improvement of approximately **12.42%** compared with the raw ECMWF forecast.
 
-The result indicates that the forecast errors contain a **learnable correction signal**.
-
-> These results are still proof-of-concept results and should not be interpreted as final production model performance.
+These results are still proof-of-concept results and are not final production model performance.
 
 ---
 
-## Planned MLOps Architecture
+# LK04 — Dynamic Data Pipeline
 
-```mermaid
-flowchart LR
-    A[ECMWF IFS Single Runs] --> B[Data Ingestion]
-    B --> C[Data Validation]
-    C --> D[Forecast-Reference Pairing]
+LK04 implements dynamic forecast ingestion and automated preprocessing.
 
-    R[ECMWF IFS Analysis] --> D
-
-    D --> E[Feature Engineering]
-    E --> F[Model Training]
-    F --> G[Model Evaluation]
-    G --> H[Champion Model]
-
-    H --> I[Residual Prediction]
-    I --> J[Corrected Wind Forecast]
-
-    J --> K[Prediction Store]
-    K --> L[Performance & Drift Monitoring]
-
-    L --> M{Retraining Trigger}
-    M -->|Triggered| N[Train Challenger]
-    N --> O{Better than Champion?}
-    O -->|Yes| H
-    O -->|No| P[Keep Current Champion]
-```
-
-The long-term workflow follows:
+The implemented flow is:
 
 ```text
-ingest
-  ↓
-validate
-  ↓
-pair
-  ↓
-feature engineering
-  ↓
-train
-  ↓
-evaluate
-  ↓
-deploy
-  ↓
-predict
-  ↓
-monitor
-  ↓
-retrain
-  ↓
-validate challenger
-  ↓
-promote
+ECMWF IFS / Open-Meteo
+          ↓
+src/ingest_data.py
+          ↓
+Raw Forecast Snapshot
+          ↓
+src/preprocess.py
+          ↓
+Processed Dataset
+          ↓
+Data Quality Report
 ```
 
 ---
 
-## Planned Technology Stack
+## Dynamic Data Ingestion
 
-| Component | Technology |
-|---|---|
-| Source control | GitHub |
-| Development environment | GitHub Codespaces |
-| Language | Python 3.11 |
-| Data processing | pandas, NumPy |
-| Machine learning | scikit-learn |
-| Project configuration | YAML |
-| Data versioning | DVC |
-| Experiment tracking | MLflow |
-| Model registry | MLflow Model Registry |
-| Workflow orchestration | Apache Airflow |
-| Model serving | FastAPI |
-| Containerization | Docker |
-| CI/CD | GitHub Actions |
-| Drift monitoring | Evidently / custom monitoring |
-| Metrics | Prometheus |
-| Dashboard | Grafana |
-
-These components are implemented progressively as the project develops.
-
----
-
-## Development Environment
-
-The repository provides a reproducible development environment using **GitHub Codespaces** and a repository-level Dev Container configuration.
-
-The configuration is defined in:
+Dynamic ingestion is implemented in:
 
 ```text
-.devcontainer/devcontainer.json
+src/ingest_data.py
 ```
 
-The environment currently provides:
+### Latest Available Forecast
 
-- Python 3.11,
-- Python VS Code extension,
-- Pylance,
-- Jupyter,
-- YAML support,
-- Ruff,
-- basic Python type checking,
-- format on save,
-- and automatic dependency installation.
-
-When a new Codespace is created, project dependencies are automatically installed from `requirements.txt`.
-
-### Codespaces Validation
-
-The current Codespaces environment has been successfully validated with:
+Run:
 
 ```bash
-git branch --show-current
-python --version
-python -m pip check
-python -c "import numpy, pandas, requests, scipy, sklearn; print('LK02 Codespaces environment OK')"
+python src/ingest_data.py
 ```
 
-Validation result:
+The script automatically:
+
+1. determines candidate ECMWF forecast runs,
+2. checks the newest candidate,
+3. falls back to an earlier run when necessary,
+4. handles transient connection errors with retry logic,
+5. validates the API response,
+6. stores the resulting raw snapshot.
+
+ECMWF forecast cycles used by the project are:
 
 ```text
-feat/lk02-infrastructure
-Python 3.11.13
-No broken requirements found.
-LK02 Codespaces environment OK
+00 UTC
+06 UTC
+12 UTC
+18 UTC
 ```
 
-This verifies that the project environment can be reproduced without relying on the local Windows virtual environment.
+### Deterministic Historical Run
+
+A specific forecast run can also be requested:
+
+```bash
+python src/ingest_data.py \
+  --run-time 2026-08-18T00:00
+```
+
+This mode is useful for:
+
+- reproducible testing,
+- debugging,
+- historical validation,
+- and periodic-ingestion simulation.
+
+### Raw Snapshot Policy
+
+Raw files are stored using the forecast initialization time.
+
+Example:
+
+```text
+data/raw/single_runs/
+├── 20260818T00.csv
+├── 20260818T06.csv
+└── ...
+```
+
+If a snapshot already exists in a persistent environment, the script safely skips destructive replacement.
 
 ---
 
-## Branching Strategy
+## Automated Preprocessing
 
-The repository follows a lightweight **GitHub Flow** strategy.
-
-The `main` branch acts as the stable integration branch. Development changes are implemented on dedicated branches before being merged through Pull Requests.
-
-Branch naming conventions:
+Automated preprocessing is implemented in:
 
 ```text
-feat/<feature-name>   → new feature or experiment
-fix/<bug-name>        → bug fix
-chore/<task-name>     → infrastructure or maintenance
-docs/<topic-name>     → documentation
+src/preprocess.py
 ```
 
-The LK02 infrastructure work is developed on:
+### Process Latest Raw Snapshot
+
+```bash
+python src/preprocess.py
+```
+
+### Process Specific Raw Snapshot
+
+```bash
+python src/preprocess.py \
+  --input data/raw/single_runs/20260818T00.csv
+```
+
+The preprocessing pipeline performs:
 
 ```text
-feat/lk02-infrastructure
+Raw Data
+   ↓
+Schema Validation
+   ↓
+Datatype Normalization
+   ↓
+Timestamp Validation
+   ↓
+Lead-Time Calculation
+   ↓
+Select +6 / +12 / +18 / +24
+   ↓
+Duplicate Handling
+   ↓
+Critical Missing-Value Handling
+   ↓
+Physical-Range Validation
+   ↓
+Cyclical Feature Engineering
+   ↓
+Processed Dataset
+   ↓
+Quality Report
 ```
 
-Current workflow:
+### Data Quality Rules
+
+Current validation includes:
 
 ```text
-main
-  │
-  └── feat/lk02-infrastructure
-          │
-          ├── standardized directory structure
-          ├── Codespaces configuration
-          ├── project configuration
-          ├── environment validation
-          ├── MIT License
-          └── README documentation
-                  │
-                  ▼
-             Pull Request
-                  │
-               review
-                  │
-             validation
-                  │
-                  ▼
-                main
+wind_speed_10m >= 0
+
+0 <= wind_direction_10m <= 360
+
+0 <= relative_humidity_2m <= 100
+
+0 <= cloud_cover <= 100
+
+precipitation >= 0
 ```
 
-Changes are merged into `main` only after validation.
+Critical wind variables are explicitly checked for missing values, while additional meteorological variables are validated according to their applicable quality rules.
+
+---
+
+## Feature Engineering
+
+Wind direction is encoded using:
+
+```text
+wind_direction_sin
+wind_direction_cos
+```
+
+This preserves the circular relationship between directions such as `359°` and `1°`.
+
+Temporal cyclical features include:
+
+```text
+hour_sin
+hour_cos
+day_of_year_sin
+day_of_year_cos
+```
+
+Canonical timestamps are stored in UTC.
+
+Local temporal features are derived using:
+
+```text
+Asia/Jakarta
+```
+
+---
+
+## Pipeline Outputs
+
+Generated processed datasets are written to:
+
+```text
+data/processed/
+```
+
+Example:
+
+```text
+forecast_20260818T00_processed.csv
+```
+
+Data-quality reports are written to:
+
+```text
+data/reports/
+```
+
+Example:
+
+```text
+forecast_20260818T00_quality.csv
+```
+
+The quality report records:
+
+- raw row count,
+- selected forecast horizons,
+- invalid timestamps,
+- duplicate rows,
+- missing critical rows,
+- physically invalid rows,
+- processed rows,
+- completeness percentage.
+
+A validated historical execution produced:
+
+```text
+Raw rows               : 30
+Target lead rows       : 4
+Duplicate rows         : 0
+Missing critical rows  : 0
+Invalid physical rows  : 0
+Processed rows         : 4
+Completeness           : 100.00%
+```
+
+---
+
+## Raw Sample
+
+Operational datasets are excluded from normal Git tracking.
+
+A representative raw sample is included for reproducibility:
+
+```text
+data/raw/samples/forecast_sample.csv
+```
+
+Generated operational files remain ignored:
+
+```text
+data/raw/single_runs/
+data/interim/
+data/processed/
+data/reports/
+```
+
+Formal dataset versioning with **DVC** is planned for a later project stage.
+
+---
+
+## GitHub Actions Automation
+
+LK04 includes:
+
+```text
+.github/workflows/lk04-data-pipeline.yml
+```
+
+The workflow supports:
+
+- Pull Request validation,
+- manual execution using `workflow_dispatch`,
+- scheduled execution every three hours,
+- Python 3.11 setup,
+- dependency installation,
+- script validation,
+- dynamic ingestion,
+- automated preprocessing,
+- generated-output inspection,
+- artifact upload.
+
+Pipeline flow:
+
+```text
+GitHub Actions
+      ↓
+Install Environment
+      ↓
+Validate Python Scripts
+      ↓
+Dynamic Ingestion
+      ↓
+Automated Preprocessing
+      ↓
+Upload Pipeline Artifact
+```
+
+The three-hour schedule represents a **polling interval**, not the ECMWF model-generation frequency.
+
+The ingestion script independently determines the latest available ECMWF forecast run.
+
+### Automation Validation
+
+The workflow has been successfully validated through:
+
+```text
+Pull Request execution        ✅
+Manual execution from main    ✅
+Dynamic data ingestion        ✅
+Automated preprocessing       ✅
+Artifact generation           ✅
+```
+
+A workflow execution generates an artifact named approximately:
+
+```text
+lk04-data-pipeline-<run_id>
+```
+
+containing generated raw, processed, and quality-report files.
+
+> GitHub Actions artifacts are execution outputs and are not a replacement for formal DVC dataset versioning.
 
 ---
 
@@ -346,11 +458,17 @@ MLOps-Jambi-Wind-Correction/
 ├── .devcontainer/
 │   └── devcontainer.json
 │
+├── .github/
+│   └── workflows/
+│       └── lk04-data-pipeline.yml
+│
 ├── config/
 │   └── project.yaml
 │
 ├── data/
 │   ├── raw/
+│   │   └── samples/
+│   │       └── forecast_sample.csv
 │   ├── interim/
 │   ├── processed/
 │   └── reports/
@@ -360,75 +478,100 @@ MLOps-Jambi-Wind-Correction/
 ├── notebooks/
 │
 ├── src/
-│   ├── __init__.py
+│   ├── ingest_data.py
+│   ├── preprocess.py
 │   │
 │   ├── data/
-│   │   ├── __init__.py
-│   │   ├── test_single_run.py
+│   │   ├── build_poc_dataset.py
+│   │   ├── lk03_pipeline_preview.py
 │   │   ├── test_reference.py
-│   │   └── build_poc_dataset.py
+│   │   └── test_single_run.py
 │   │
 │   ├── features/
-│   │   └── __init__.py
-│   │
 │   ├── models/
-│   │   ├── __init__.py
-│   │   └── sanity_residual_correction.py
-│   │
 │   └── monitoring/
-│       └── __init__.py
 │
 ├── tests/
-│   └── __init__.py
-│
 ├── .gitignore
 ├── LICENSE
 ├── README.md
 └── requirements.txt
 ```
 
-### Directory Responsibilities
+---
 
-| Directory | Purpose |
-|---|---|
-| `.devcontainer/` | Reproducible Codespaces environment |
-| `config/` | Centralized project configuration |
-| `data/raw/` | Raw data obtained from upstream sources |
-| `data/interim/` | Intermediate transformation results |
-| `data/processed/` | Cleaned or modeling-ready data |
-| `data/reports/` | Data-quality and evaluation reports |
-| `docs/` | Project documentation |
-| `models/` | Trained model artifacts |
-| `notebooks/` | Exploratory analysis and experiments |
-| `src/data/` | Data ingestion, validation, and pairing |
-| `src/features/` | Feature engineering logic |
-| `src/models/` | Model training and evaluation |
-| `src/monitoring/` | Monitoring and drift logic |
-| `tests/` | Automated project tests |
+## Development Environment
+
+The project uses:
+
+- Python 3.11
+- GitHub Codespaces
+- pandas
+- NumPy
+- Requests
+- scikit-learn
+- GitHub Actions
+
+Install dependencies with:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Validate the environment:
+
+```bash
+python --version
+python -m pip check
+```
+
+Validate LK04 Python scripts:
+
+```bash
+python -m py_compile \
+  src/ingest_data.py \
+  src/preprocess.py
+```
+
+Code quality was also validated using Ruff:
+
+```bash
+ruff check \
+  src/ingest_data.py \
+  src/preprocess.py
+```
 
 ---
 
-## Project Configuration
+## Git Workflow
 
-Project-level parameters are centralized in:
+The repository follows a lightweight GitHub Flow.
 
 ```text
-config/project.yaml
+main
+  ↓
+feature branch
+  ↓
+implementation
+  ↓
+local validation
+  ↓
+push
+  ↓
+Pull Request
+  ↓
+GitHub Actions validation
+  ↓
+merge to main
 ```
 
-The current configuration stores:
+LK04 was developed using:
 
-- project name,
-- Jambi location,
-- latitude and longitude,
-- timezone,
-- forecast source,
-- target variable,
-- forecast lead times,
-- reference source,
-- and machine learning task definition.
+```text
+feat/lk04-dynamic-ingestion-preprocessing
+```
 
-Separating configuration from source code reduces hard-coded project parameters and makes future changes easier to manage.
+and merged into `main` after the automated PR workflow passed.
 
 ---
 
@@ -436,217 +579,78 @@ Separating configuration from source code reduces hard-coded project parameters 
 
 | Stage | Status |
 |---|---|
-| Problem formulation | ✅ Completed |
-| ECMWF IFS Single Runs validation | ✅ Completed |
-| IFS Analysis reference validation | ✅ Completed |
-| Forecast-reference pairing | ✅ Completed |
-| Data-quality validation | ✅ Completed |
-| Raw forecast baseline | ✅ Completed |
-| Temporal residual-correction PoC | ✅ Completed |
-| Standardized repository structure | ✅ Completed |
-| Project configuration | ✅ Completed |
-| GitHub Codespaces setup | ✅ Completed |
-| Codespaces dependency validation | ✅ Completed |
-| GitHub Flow infrastructure branch | ✅ Completed |
-| MIT License | ✅ Completed |
-| LK02 Pull Request | ✅ Completed |
+| Project formulation | ✅ Completed |
+| Forecast data validation | ✅ Completed |
+| Reference data validation | ✅ Completed |
+| Forecast-reference PoC | ✅ Completed |
+| Residual-correction PoC | ✅ Completed |
+| Reproducible repository environment | ✅ Completed |
+| LK03 data-pipeline preview | ✅ Completed |
+| Dynamic data ingestion | ✅ Implemented |
+| Automated preprocessing | ✅ Implemented |
+| Raw sample | ✅ Implemented |
+| Data-quality reporting | ✅ Implemented |
+| Retry and fallback handling | ✅ Implemented |
+| GitHub Actions automation | ✅ Implemented |
+| Pull Request CI validation | ✅ Passed |
+| Manual main-branch workflow | ✅ Passed |
 | DVC data versioning | ⏳ Planned |
-| MLflow experiment tracking | ⏳ Planned |
+| MLflow tracking | ⏳ Planned |
+| Apache Airflow orchestration | ⏳ Planned |
 | Production model training | ⏳ Planned |
 | Model serving | ⏳ Planned |
-| CI/CD automation | ⏳ Planned |
 | Drift monitoring | ⏳ Planned |
-| Prometheus & Grafana monitoring | ⏳ Planned |
-| Automated continuous training | ⏳ Planned |
+| Continuous training | ⏳ Planned |
 
 ---
 
-## Getting Started
+## Planned MLOps Stack
 
-There are two supported ways to work with this repository:
+| Component | Technology |
+|---|---|
+| Source Control | GitHub |
+| Development Environment | GitHub Codespaces |
+| Data Processing | pandas / NumPy |
+| Machine Learning | scikit-learn |
+| Lightweight Automation | GitHub Actions |
+| Data Versioning | DVC |
+| Experiment Tracking | MLflow |
+| Workflow Orchestration | Apache Airflow |
+| Model Serving | FastAPI |
+| Containerization | Docker |
+| Drift Monitoring | Evidently / custom monitoring |
+| Metrics | Prometheus |
+| Dashboard | Grafana |
 
-1. GitHub Codespaces
-2. Local Python environment
+GitHub Actions currently handles the lightweight LK04 data-pipeline automation.
 
-### Option 1 — GitHub Codespaces
+Apache Airflow remains planned for future workflows involving more complex dependencies such as training, evaluation, deployment, monitoring, and retraining.
 
-Open the repository on GitHub and select:
+---
+
+## Continuous Training Direction
+
+The future continuous-training design follows a champion-challenger strategy.
 
 ```text
-Code
-→ Codespaces
-→ Create codespace
+Current Champion
+       ↓
+Monitor Performance / Drift
+       ↓
+Retraining Trigger
+       ↓
+Train Challenger
+       ↓
+Evaluate
+       ↓
+Better?
+ ┌─────┴─────┐
+Yes          No
+ ↓            ↓
+Promote     Keep Champion
 ```
 
-The Dev Container automatically configures the environment and installs dependencies from `requirements.txt`.
-
-Verify the environment:
-
-```bash
-python --version
-python -m pip check
-```
-
-Optional dependency validation:
-
-```bash
-python -c "import numpy, pandas, requests, scipy, sklearn; print('Dependencies OK')"
-```
-
-### Option 2 — Local Development
-
-Clone the repository:
-
-```bash
-git clone https://github.com/farlliant/MLOps-Jambi-Wind-Correction.git
-cd MLOps-Jambi-Wind-Correction
-```
-
-Create a virtual environment:
-
-```bash
-python -m venv .venv
-```
-
-Activate it on Windows PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
----
-
-## Running the Current Proof-of-Concept
-
-### Validate ECMWF IFS Single Runs
-
-```bash
-python src/data/test_single_run.py
-```
-
-### Validate Reference Data
-
-```bash
-python src/data/test_reference.py
-```
-
-### Build Forecast-Reference Dataset
-
-```bash
-python src/data/build_poc_dataset.py
-```
-
-### Run Residual-Correction Sanity Test
-
-```bash
-python src/models/sanity_residual_correction.py
-```
-
----
-
-## Data Versioning Policy
-
-Generated datasets are intentionally excluded from normal Git versioning.
-
-Current generated data locations include:
-
-```text
-data/raw/
-data/processed/
-data/reports/
-```
-
-The directory structure is retained using `.gitkeep`, while generated files are excluded through `.gitignore`.
-
-As the project progresses, reproducible datasets are planned to be managed using **DVC** rather than committed directly to the Git repository.
-
----
-
-## Continuous Training Strategy
-
-The project is designed around a **hybrid continuous-training strategy**.
-
-Retraining can eventually be triggered by:
-
-1. scheduled evaluation,
-2. model performance degradation,
-3. persistent data or feature drift.
-
-Retraining does not automatically replace the deployed model.
-
-A newly trained model acts as a **challenger**, while the currently deployed model remains the **champion**.
-
-```text
-current champion
-      │
-      ├───────────────┐
-      │               │
-      ▼               ▼
-continue serving   train challenger
-                       │
-                       ▼
-                  evaluate model
-                       │
-             ┌─────────┴─────────┐
-             │                   │
-          better?              worse?
-             │                   │
-             ▼                   ▼
-      promote challenger    keep champion
-```
-
----
-
-## Evaluation Metrics
-
-The main model metrics are:
-
-- **MAE** — Mean Absolute Error
-- **RMSE** — Root Mean Squared Error
-- **Bias** — average directional forecast error
-
-A corrected model is expected to satisfy:
-
-```text
-MAE_corrected < MAE_raw
-RMSE_corrected <= RMSE_raw
-|Bias_corrected| <= |Bias_raw|
-```
-
-Evaluation is performed per forecast lead time as well as across the overall dataset.
-
-Pipeline-level monitoring will also include:
-
-- ingestion success,
-- critical data completeness,
-- duplicate detection,
-- data freshness,
-- pipeline execution status.
-
----
-
-## Project Direction
-
-The repository is currently transitioning from the **initial proof-of-concept** into a structured MLOps implementation.
-
-The next major milestones are:
-
-1. introduce reproducible dataset versioning,
-2. organize experiment tracking,
-3. formalize model training and validation,
-4. register champion and challenger models,
-5. package the inference service,
-6. automate CI/CD,
-7. monitor system and model health,
-8. detect drift and performance degradation,
-9. trigger challenger training,
-10. deploy validated model improvements.
+Retraining automation is not part of LK04 and remains a future project stage.
 
 ---
 
@@ -660,6 +664,6 @@ See the `LICENSE` file for details.
 
 ## Disclaimer
 
-ECMWF IFS Analysis is currently used as an initial reference for the proof-of-concept and is **not treated as independent observational ground truth**.
+ECMWF IFS Analysis is currently used as an initial forecast reference and is **not treated as independent observational ground truth**.
 
-The project architecture and technology stack will continue to evolve as subsequent MLOps stages are implemented.
+The architecture and technology stack will continue to evolve as later MLOps stages are implemented.
