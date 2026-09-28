@@ -46,6 +46,10 @@ data/reports/*
 !data/processed/.gitkeep
 !data/reports/.gitkeep
 
+# Keep small raw samples for documentation/LK04
+!data/raw/samples/
+!data/raw/samples/**
+
 # ============================================
 # Logs / Cache
 # ============================================

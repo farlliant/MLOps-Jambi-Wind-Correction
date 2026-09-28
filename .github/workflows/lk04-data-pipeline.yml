@@ -1,0 +1,71 @@
+name: LK04 Dynamic Data Pipeline
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - main
+
+  schedule:
+    - cron: "30 */3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  data-pipeline:
+    name: Ingest and Preprocess Forecast Data
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Validate Python scripts
+        run: |
+          python -m py_compile \
+            src/ingest_data.py \
+            src/preprocess.py
+
+      - name: Run dynamic data ingestion
+        run: |
+          python src/ingest_data.py
+
+      - name: Run automated preprocessing
+        run: |
+          python src/preprocess.py
+
+      - name: Show generated outputs
+        run: |
+          echo "=== RAW DATA ==="
+          find data/raw/single_runs -maxdepth 1 -type f -print || true
+
+          echo "=== PROCESSED DATA ==="
+          find data/processed -maxdepth 1 -type f -print || true
+
+          echo "=== QUALITY REPORTS ==="
+          find data/reports -maxdepth 1 -type f -print || true
+
+      - name: Upload pipeline outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: lk04-data-pipeline-${{ github.run_id }}
+          path: |
+            data/raw/single_runs/
+            data/processed/
+            data/reports/
+          if-no-files-found: error
+          retention-days: 7
