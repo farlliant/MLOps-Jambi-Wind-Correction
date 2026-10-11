@@ -389,7 +389,9 @@ MLOps-Jambi-Wind-Correction/
 │   │
 │   ├── interim/
 │   ├── processed/
-│   └── reports/
+│   ├── reports/
+│   └── versioned/
+│       └── forecast_history.csv.dvc
 │
 ├── docs/
 ├── models/
@@ -398,6 +400,7 @@ MLOps-Jambi-Wind-Correction/
 ├── src/
 │   ├── ingest_data.py
 │   ├── preprocess.py
+│   ├── update_forecast_history.py
 │   │
 │   ├── data/
 │   │   ├── build_poc_dataset.py
@@ -835,42 +838,79 @@ Generated pipeline outputs are stored as GitHub Actions artifacts.
 
 ## Data Storage and Versioning Policy
 
-Generated operational datasets are intentionally excluded from normal Git versioning.
+The project uses **Git for source-code versioning** and **DVC for dataset versioning**. This separation keeps large, changing datasets out of the Git repository while preserving dataset identity through Git-tracked DVC metadata.
 
-Current generated-data locations include:
+### Dataset organization
 
-```text
-data/raw/single_runs/
-data/interim/
-data/processed/
-data/reports/
-```
+| Location | Purpose | Versioning |
+|---|---|---|
+| `data/raw/single_runs/` | Individual ECMWF forecast snapshots | Operational files, ignored by Git |
+| `data/raw/samples/forecast_sample.csv` | Representative raw forecast sample | Git |
+| `data/versioned/forecast_history.csv` | Cumulative forecast history | DVC |
+| `data/versioned/forecast_history.csv.dvc` | Dataset hash, size, and path | Git |
+| `src/update_forecast_history.py` | Incremental, duplicate-safe history updates | Git |
 
-A representative raw sample is retained in Git:
+The cumulative dataset is constructed from real ECMWF IFS forecast runs retrieved through the Open-Meteo Single Runs API.
 
-```text
-data/raw/samples/forecast_sample.csv
-```
+Each observation is identified by the natural key `(run_time, valid_time)`. The update script preserves existing rows, appends unseen forecast pairs, rejects conflicting records, and prevents duplicates on repeated execution.
 
-This allows the repository to document the expected raw schema without committing continuously generated operational datasets.
+### DVC environment setup
 
-Formal dataset versioning is planned using **DVC**.
+DVC 3.x was installed as an isolated CLI using `pipx` on GitHub Codespaces:
 
-The intended separation is:
+    pipx install "dvc>=3,<4"
 
-```text
-Git
-→ source-code versioning
+DVC was initialized with `dvc init` and its configuration was committed to Git. Initialization is only necessary once per repository.
 
-Raw snapshots
-→ non-destructive operational data
+A fresh Codespace needs DVC installed separately because the current Dev Container installs application dependencies from `requirements.txt`, not the DVC CLI.
 
-GitHub Actions artifacts
-→ workflow execution outputs
+### Dataset version history
 
-DVC
-→ formal dataset versioning
-```
+| Version | Git commit | Rows | Forecast runs | Size |
+|---|---|---:|---:|---:|
+| V1 | `a64d769` | 30 | 1 | 5,493 bytes |
+| V2 | `f444ba5` | 60 | 2 | 10,815 bytes |
+
+V1 contains the forecast run initialized on 2026-08-18 at 00:00 UTC.
+
+V2 adds 30 rows from the forecast run initialized on 2026-10-11 at 00:00 UTC. All 60 `(run_time, valid_time)` pairs are unique.
+
+The DVC MD5 hashes are:
+
+- V1: `18218cd00751688e36a4688a5bf48072`
+- V2: `9e01e9a0a05a4302e7aaf18509cd7aa1`
+
+### Incremental update workflow
+
+The operational workflow consists of:
+
+1. Fetching an available forecast run with `python src/ingest_data.py`.
+2. Updating the cumulative dataset using `python src/update_forecast_history.py --input data/raw/single_runs/20261011T00.csv`.
+3. Inspecting detected changes with `dvc status`.
+4. Recording the updated content hash using `dvc add data/versioned/forecast_history.csv`.
+5. Committing the updated `.dvc` pointer and source code to Git.
+
+To compare the two committed dataset versions:
+
+    dvc diff a64d769 f444ba5
+
+To inspect the metadata changes:
+
+    git diff a64d769 f444ba5 -- data/versioned/forecast_history.csv.dvc
+
+The demonstrated DVC comparison reports one modified dataset. The separate CSV validation confirms the row-count increase from 30 to 60 without duplicate natural keys.
+
+### Reproducibility and current limitations
+
+The Git commit identifies which dataset version is associated with a particular project revision. DVC stores dataset content in its cache and maintains a lightweight pointer in Git.
+
+This allows the two dataset versions to be distinguished and recovered when their corresponding cache objects remain available.
+
+**A DVC remote has not yet been configured.** Consequently, cloning the Git repository alone does not provide the DVC-managed dataset contents. Cross-environment restoration requires the dataset objects to be made available through a configured DVC remote or another reliable transfer mechanism.
+
+Re-fetching forecasts is not guaranteed to reproduce byte-identical files because ingestion records a retrieval timestamp. Exact dataset restoration therefore depends on preserving the original DVC objects.
+
+The V1-to-V2 exercise demonstrates incremental data ingestion and dataset versioning. Automated model retraining and promotion are not implemented by this exercise.
 
 ---
 
@@ -975,7 +1015,7 @@ Prometheus is planned for operational metrics collection, while Grafana is plann
 | Pull Request pipeline validation | ✅ Validated |
 | Manual workflow execution | ✅ Validated |
 | Formal forecast-reference training dataset | ⏳ Planned |
-| DVC dataset versioning | ⏳ Planned |
+| DVC dataset versioning | ✅ Implemented (local DVC cache; remote pending) |
 | MLflow experiment tracking | ⏳ Planned |
 | Model registry | ⏳ Planned |
 | Production model training | ⏳ Planned |
