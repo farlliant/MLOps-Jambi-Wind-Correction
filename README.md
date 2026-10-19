@@ -391,7 +391,9 @@ MLOps-Jambi-Wind-Correction/
 │   ├── processed/
 │   ├── reports/
 │   └── versioned/
-│       └── forecast_history.csv.dvc
+│       ├── forecast_history.csv.dvc
+│       ├── lk06_reference.csv.dvc
+│       └── lk06_training_dataset.csv.dvc
 │
 ├── docs/
 ├── models/
@@ -401,6 +403,9 @@ MLOps-Jambi-Wind-Correction/
 │   ├── ingest_data.py
 │   ├── preprocess.py
 │   ├── update_forecast_history.py
+│   ├── lk06_backfill_forecasts.py
+│   ├── lk06_fetch_reference.py
+│   ├── lk06_prepare_dataset.py
 │   │
 │   ├── data/
 │   │   ├── build_poc_dataset.py
@@ -416,6 +421,7 @@ MLOps-Jambi-Wind-Correction/
 │
 ├── .gitignore
 ├── LICENSE
+├── train.py
 ├── README.md
 └── requirements.txt
 ```
@@ -914,6 +920,238 @@ The V1-to-V2 exercise demonstrates incremental data ingestion and dataset versio
 
 ---
 
+
+## LK06 — MLflow Experiment Tracking and Model Registry
+
+LK06 extends the **DVC-versioned dataset from LK05** into a
+reproducible machine learning experimentation workflow using
+**Random Forest Regression and MLflow 3.17.1**.
+
+The objective is to learn the residual error of ECMWF IFS wind
+speed forecasts for Jambi, Indonesia.
+
+> **Important:** This is an experimental model-selection
+> workflow, not a production deployment. ECMWF IFS Analysis
+> is a model-based reference, not independent observational
+> ground truth.
+
+### LK06 Data Preparation
+
+Historical forecast backfilling was performed for
+**1–14 October 2026**, covering ECMWF initialization cycles
+at 00, 06, 12, and 18 UTC.
+
+The ingestion process reuses the existing LK04 and LK05
+components and prevents duplicate forecast-reference pairs.
+
+| Component | Result |
+|---|---:|
+| Forecast runs | 57 |
+| Raw forecast rows | 1,710 |
+| Target horizons | +6, +12, +18, +24 hours |
+| Forecast-reference pairs | 228 |
+| Unique reference timestamps | 63 |
+| Training dataset columns | 19 |
+| Duplicate pairs | 0 |
+| Missing targets | 0 |
+
+The 57 forecast runs comprise 56 October cycles and one
+earlier August cycle.
+
+### Dataset Versioning
+
+Three datasets are tracked with DVC:
+
+| Dataset | DVC metadata |
+|---|---|
+| Cumulative forecast history | `data/versioned/forecast_history.csv.dvc` |
+| Reference dataset | `data/versioned/lk06_reference.csv.dvc` |
+| Training dataset | `data/versioned/lk06_training_dataset.csv.dvc` |
+
+The corresponding CSV files are intentionally excluded from
+Git and managed through the local DVC cache.
+
+Remote DVC storage remains optional and is not configured.
+Reproducing the exact data in a new environment requires
+the original DVC cache or a separately preserved copy.
+
+### Residual Correction
+
+The regression target is defined as:
+
+```text
+residual = reference_wind_speed - forecast_wind_speed
+
+predicted_residual = ML(forecast_features)
+
+corrected_wind_speed = max(
+    0,
+    forecast_wind_speed + predicted_residual
+)
+```
+
+The model uses 14 forecast-derived features.
+
+Reference values and actual residuals are excluded from
+model inputs to prevent target leakage.
+
+### Temporal Train-Validation Split
+
+Data is partitioned chronologically by unique `valid_time`.
+
+This prevents the same reference timestamp from appearing
+in both training and validation.
+
+| Partition | Rows | Unique timestamps |
+|---|---:|---:|
+| Training | 182 | 50 |
+| Validation | 46 | 13 |
+
+Validation starts at **2026-10-12 18:00 UTC**.
+
+All experiments use the same split and `random_state=42`.
+
+### Random Forest Experiments
+
+Three configurations were evaluated:
+
+| Experiment | n_estimators | max_depth | min_samples_leaf |
+|---|---:|---:|---:|
+| RF-01 | 50 | 5 | 2 |
+| RF-02 | 100 | 10 | 2 |
+| RF-03 | 200 | 15 | 1 |
+
+MLflow experiment name:
+
+`LK06-Jambi-Wind-Residual-Correction`
+
+Each experiment logs:
+
+- model hyperparameters;
+- training and validation metadata;
+- validation MAE, RMSE, and bias;
+- baseline performance;
+- percentage MAE improvement;
+- MAE by forecast horizon;
+- serialized model and input signature;
+- evaluation prediction artifacts.
+
+### Experiment Results
+
+All three experiments completed successfully.
+
+| Model | Validation MAE (m/s) | Validation RMSE (m/s) | Bias (m/s) |
+|---|---:|---:|---:|
+| ECMWF baseline | 0.6183 | **0.7345** | — |
+| **RF-01** | **0.6152** | 0.8084 | -0.5551 |
+| RF-02 | 0.6512 | 0.8413 | -0.5878 |
+| RF-03 | 0.6960 | 0.8834 | -0.6264 |
+
+**RF-01 is the best of the tested models based on
+validation MAE**, improving MAE by approximately 0.50%
+relative to the uncorrected ECMWF forecast.
+
+However, RF-01 has a worse RMSE than the baseline.
+Its negative validation bias also indicates a tendency
+to underestimate the reference wind speed.
+
+Therefore, the experiment does not demonstrate consistent
+improvement across all evaluation metrics.
+
+### MLflow Model Registry
+
+The selected RF-01 model was registered as:
+
+| Property | Value |
+|---|---|
+| Model name | `Jambi-Wind-Residual-RandomForest` |
+| Version | `1` |
+| Alias | `candidate` |
+| Selection criterion | Lowest validation MAE |
+| Production readiness | Not yet established |
+
+The `candidate` alias is intentional: the selected model
+has not been promoted to production.
+
+### Running LK06
+
+Activate the Python environment:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the repository dependencies and LK06 packages:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The required DVC datasets must already be available locally.
+DVC is installed separately in the current Codespaces setup.
+
+Verify dataset availability:
+
+```bash
+dvc status
+```
+
+If the reference and training datasets need regeneration
+from the available forecast history:
+
+```bash
+python src/lk06_fetch_reference.py
+python src/lk06_prepare_dataset.py
+```
+
+Start the MLflow Tracking Server if it is not already
+running:
+
+```bash
+mlflow ui --host 0.0.0.0 --port 5000
+```
+
+Then run training in another terminal:
+
+```bash
+python -m py_compile train.py
+python train.py
+```
+
+Each execution of `train.py` creates three new MLflow runs.
+
+The local MLflow tracking database and model artifacts
+are not committed to Git. They must be preserved separately
+to reproduce the original run history and registered model.
+
+### LK06 Implementation Files
+
+| File | Purpose |
+|---|---|
+| `train.py` | Training, evaluation, and MLflow logging |
+| `src/lk06_backfill_forecasts.py` | Historical forecast ingestion |
+| `src/lk06_fetch_reference.py` | Reference data acquisition |
+| `src/lk06_prepare_dataset.py` | Forecast-reference pairing |
+| `data/reports/lk06/experiment_comparison.csv` | Experiment comparison |
+| `data/reports/lk06/best_model_metadata.json` | Best-model metadata |
+
+### LK06 Limitations
+
+- The available historical dataset is relatively short.
+- The validation set contains only 13 unique reference
+  timestamps.
+- Data does not cover a continuous multi-season period.
+- ECMWF IFS Analysis is not independent observational
+  ground truth.
+- The selected model has not demonstrated better RMSE
+  than the original forecast.
+- DVC remote storage and external MLflow backups are
+  not configured.
+- Production inference and continuous training are
+  future development stages.
+
+---
+
 ## Continuous Training Strategy
 
 The project is designed around a **hybrid continuous-training strategy**.
@@ -1014,10 +1252,10 @@ Prometheus is planned for operational metrics collection, while Grafana is plann
 | GitHub Actions workflow automation | ✅ Implemented |
 | Pull Request pipeline validation | ✅ Validated |
 | Manual workflow execution | ✅ Validated |
-| Formal forecast-reference training dataset | ⏳ Planned |
-| DVC dataset versioning | ✅ Implemented (local DVC cache; remote pending) |
-| MLflow experiment tracking | ⏳ Planned |
-| Model registry | ⏳ Planned |
+| Formal forecast-reference training dataset | ✅ Implemented (LK06) |
+| DVC dataset versioning | ✅ Implemented (local DVC cache; remote optional) |
+| MLflow experiment tracking | ✅ Implemented (3 experiments) |
+| Model registry | ✅ Implemented (candidate v1) |
 | Production model training | ⏳ Planned |
 | Model serving | ⏳ Planned |
 | Drift monitoring | ⏳ Planned |
@@ -1089,20 +1327,19 @@ feature engineering
 workflow automation
 ```
 
+The LK06 milestone has added DVC-versioned training data,
+three MLflow-tracked experiments, and a registered candidate model.
+
 The next major milestones are:
 
-1. construct the final forecast-reference training dataset,
-2. introduce reproducible dataset versioning using DVC,
-3. track experiments using MLflow,
-4. formalize production-oriented model training,
-5. register champion and challenger models,
-6. package the inference service,
-7. expand workflow orchestration as pipeline complexity grows,
-8. monitor data, model, and service health,
-9. detect performance degradation and drift,
-10. trigger challenger training,
-11. validate challengers against the current champion,
-12. deploy validated model improvements.
+1. Review and merge the LK06 implementation through a Pull Request.
+2. Preserve DVC objects and MLflow artifacts outside Codespaces.
+3. Expand historical data and implement walk-forward validation.
+4. Evaluate correction quality against independent observations.
+5. Improve validation RMSE and forecast bias.
+6. Implement and test the model-serving API.
+7. Introduce model and data-drift monitoring.
+8. Develop controlled continuous training and model promotion.
 
 The long-term objective is a reproducible MLOps system capable of:
 
