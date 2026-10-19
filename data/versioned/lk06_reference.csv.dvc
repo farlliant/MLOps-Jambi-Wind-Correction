@@ -1,0 +1,5 @@
+outs:
+- md5: 27f1376a790186e17d491314bc315417
+  size: 1978
+  hash: md5
+  path: lk06_reference.csv

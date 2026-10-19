@@ -1,0 +1,5 @@
+outs:
+- md5: 1f8739c7fc5f8e01ad37d64362b0ef31
+  size: 52727
+  hash: md5
+  path: lk06_training_dataset.csv

@@ -75,3 +75,24 @@ data/interim/*
 # ============================================
 models/*
 !models/.gitkeep
+
+# ============================================
+# LK06 - MLflow Local Experiment Storage
+# ============================================
+mlflow.db*
+mlartifacts/
+mlruns/
+
+# LK06 - Keep only experiment summaries in Git
+!data/reports/lk06/
+!data/reports/lk06/experiment_comparison.csv
+!data/reports/lk06/best_model_metadata.json
+# Local MLflow database and artifacts
+mlflow-artifacts/
+
+
+# LK06 - Track only experiment summaries
+!data/reports/lk06/
+data/reports/lk06/*
+!data/reports/lk06/experiment_comparison.csv
+!data/reports/lk06/best_model_metadata.json
