@@ -1152,6 +1152,186 @@ to reproduce the original run history and registered model.
 
 ---
 
+## LK07 — Model Registry, Versioning, and Inference Readiness
+
+LK07 extends the MLflow experiment tracking implemented in LK06
+by introducing **model version management, lifecycle transition
+simulation, DVC-linked metadata, and registered-model inference**.
+
+The implementation uses **MLflow 3.17.1** and reuses trained
+model artifacts from LK06 without retraining.
+
+### Registered Model Versions
+
+Registered model: `Jambi-Wind-Residual-RandomForest`
+
+| Property | V1 — RF-01 | V2 — RF-02 |
+|---|---|---|
+| `n_estimators` | 50 | 100 |
+| `max_depth` | 5 | 10 |
+| `min_samples_leaf` | 2 | 2 |
+| Validation MAE (m/s) | **0.6152** | 0.6512 |
+| Validation RMSE (m/s) | **0.8084** | 0.8413 |
+| Registry stage | Production (simulation) | None |
+| Active role | Champion | Challenger |
+| Promotion decision | Selected | Not promoted |
+
+Both versions originate from successfully completed LK06
+experiments and use the same temporal validation split.
+
+### Model Selection Decision
+
+**Version 1 (RF-01) is the active inference model**, referenced
+using the MLflow alias `champion`.
+
+V1 was selected because it achieved lower validation MAE and
+RMSE than V2 on the same validation dataset.
+
+However, V1's RMSE of 0.8084 m/s is still worse than the
+uncorrected ECMWF baseline of 0.7345 m/s.
+
+Therefore, the Production stage represents an **academic
+lifecycle simulation only**, not approval for real operational
+deployment.
+
+### Model Lifecycle and Aliases
+
+The following legacy stage transition was demonstrated for V1:
+
+```text
+None --> Staging --> Production (academic simulation)
+```
+
+The implementation also uses MLflow's modern aliases:
+
+| Alias | Version | Purpose |
+|---|---|---|
+| `candidate` | V1 | Candidate retained from LK06 |
+| `champion` | V1 | Active model for LK07 inference |
+| `challenger` | V2 | Alternative model for comparison |
+
+MLflow model stages are deprecated. Aliases are used as the
+primary reference for programmatic model selection.
+
+### Registered-Model Inference
+
+Inference is implemented in:
+
+`src/lk07_inference.py`
+
+Run the inference test with the local MLflow tracking server
+running on port 5000:
+
+```bash
+python src/lk07_inference.py --alias champion
+```
+
+The script loads the registered model using:
+
+```text
+models:/Jambi-Wind-Residual-RandomForest@champion
+```
+
+It builds a synthetic forecast input with 14 features, predicts
+the residual, and computes the corrected wind speed.
+
+**Verified example:**
+
+| Inference output | Result |
+|---|---:|
+| Raw forecast | 2.4000 m/s |
+| Predicted residual | -0.0835 m/s |
+| Corrected forecast | 2.3165 m/s |
+| Registered model version | V1 |
+| Inference status | Passed |
+
+The input is synthetic and does not represent actual observed
+weather conditions. The inference test verifies functional
+readiness, not forecast accuracy or operational readiness.
+
+### DVC Lineage and Metadata
+
+LK07 stores model-version metadata in:
+
+`config/lk07_model_registry.yaml`
+
+The metadata connects:
+
+- MLflow model versions, aliases, and source run IDs;
+- validation metrics and model selection decisions;
+- DVC dataset pointers and dataset checksums;
+- the active model selected for inference;
+- the academic Production-stage simulation;
+- and the registered-model inference evidence.
+
+The corresponding inference evidence is stored in:
+
+`data/reports/lk07/inference_champion.json`
+
+### Registry Management and Verification
+
+Registry lifecycle management is implemented in:
+
+`src/lk07_registry.py`
+
+Verify the current registered model versions, aliases,
+stages, experiment metrics, and dataset lineage:
+
+```bash
+python src/lk07_registry.py verify
+```
+
+The `verify` command is read-only and checks that:
+
+- Version 1 originates from the RF-01 experiment.
+- Version 2 originates from the RF-02 experiment.
+- Version 1 is in the simulated Production stage.
+- Version 2 remains unpromoted.
+- The `candidate` and `champion` aliases reference V1.
+- The `challenger` alias references V2.
+- The dataset SHA-256 matches the LK06 model metadata.
+- The recorded model metrics match the original MLflow runs.
+
+The script also supports guarded lifecycle operations:
+
+```bash
+python src/lk07_registry.py sync --apply
+python src/lk07_registry.py staging --apply
+python src/lk07_registry.py production --apply
+```
+
+**Warning:** Commands using `--apply` modify the MLflow
+Registry. They are intended for controlled restoration
+or lifecycle demonstrations, not routine verification.
+
+The current LK07 Registry has already completed its
+academic lifecycle simulation. There is no need to
+repeat these transitions.
+
+To test the active inference model:
+
+```bash
+python src/lk07_inference.py --alias champion
+```
+
+The MLflow tracking server must be running and the
+registered model artifacts must be accessible.
+
+### Reproducibility and Limitations
+
+- DVC metadata is committed to Git, but dataset objects
+  currently rely on the local DVC cache.
+- MLflow Registry and model artifacts are stored in Codespaces.
+- The Registry transitions were performed as an academic
+  demonstration and are not deployment automation.
+- The registered model can perform inference but has not
+  passed operational acceptance criteria.
+- Future work should include persistent artifact storage,
+  automated Registry management, stronger temporal validation,
+  and independent observational evaluation.
+
+---
+
 ## Continuous Training Strategy
 
 The project is designed around a **hybrid continuous-training strategy**.

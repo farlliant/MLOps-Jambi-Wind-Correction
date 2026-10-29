@@ -1,0 +1,64 @@
+# LK07 - Model Registry and DVC lineage metadata
+schema_version: 1
+
+registry:
+  name: "Jambi-Wind-Residual-RandomForest"
+  tracking_uri: "http://127.0.0.1:5000"
+  experiment: "LK06-Jambi-Wind-Residual-Correction"
+
+dataset_lineage:
+  forecast_history:
+    dvc_pointer: "data/versioned/forecast_history.csv.dvc"
+    md5: "4c743119b109c3e23b15105ec03bc3d8"
+  reference:
+    dvc_pointer: "data/versioned/lk06_reference.csv.dvc"
+    md5: "27f1376a790186e17d491314bc315417"
+  training:
+    dvc_pointer: "data/versioned/lk06_training_dataset.csv.dvc"
+    md5: "1f8739c7fc5f8e01ad37d64362b0ef31"
+    sha256: "59ee06bb1b873097237a15ad755c3ce561df7feda28095cf933922124d0a2436"
+
+validation:
+  split_method: "chronological_unique_valid_time"
+  train_rows: 182
+  validation_rows: 46
+  baseline_mae_ms: 0.6182608695652174
+  baseline_rmse_ms: 0.7345184758087082
+
+model_versions:
+  v1:
+    source_experiment: "RF-01"
+    run_id: "8a2406a807ac4c75a35bfa98463d5ca4"
+    source_uri: "models:/m-a9914801cc4e4a1b9d5f454b81d52803"
+    stage: "Production"
+    aliases: ["candidate", "champion"]
+    val_mae_ms: 0.6151984053126739
+    val_rmse_ms: 0.8084273468366523
+
+  v2:
+    source_experiment: "RF-02"
+    run_id: "4a0395dd801747749ce757978a38df5b"
+    source_uri: "models:/m-1f5f031c7d4b4d45bbee8d39b80fdf48"
+    stage: "None"
+    aliases: ["challenger"]
+    val_mae_ms: 0.651230248720909
+    val_rmse_ms: 0.8413449714232683
+
+promotion_decision:
+  selected_version: 1
+  active_alias: "champion"
+  stage_transition: "None -> Staging -> Production"
+  selection_reason: "V1 has lower validation MAE and RMSE than V2"
+  academic_simulation: true
+  approved_for_operational_deployment: false
+  limitation: "V1 RMSE remains worse than raw ECMWF baseline"
+
+inference_verification:
+  model_uri: "models:/Jambi-Wind-Residual-RandomForest@champion"
+  input_type: "synthetic_forecast_example"
+  feature_count: 14
+  raw_wind_ms: 2.4
+  predicted_residual_ms: -0.08354861607282682
+  corrected_wind_ms: 2.316451383927173
+  evidence_path: "data/reports/lk07/inference_champion.json"
+  passed: true

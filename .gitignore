@@ -96,3 +96,8 @@ mlflow-artifacts/
 data/reports/lk06/*
 !data/reports/lk06/experiment_comparison.csv
 !data/reports/lk06/best_model_metadata.json
+
+# LK07 - Track verified registered-model inference evidence
+!data/reports/lk07/
+data/reports/lk07/*
+!data/reports/lk07/inference_champion.json
