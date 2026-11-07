@@ -1,0 +1,27 @@
+policy:
+  name: lk08-jambi-wind-staging
+  version: 1
+  deployment_scope: academic_simulation_only
+
+dataset:
+  path: data/versioned/lk06_training_dataset.csv
+  min_labeled_rows: 228
+  min_unique_validation_times: 13
+  required_lead_hours: [6, 12, 18, 24]
+
+reference_model:
+  historical_metadata: data/reports/lk06/best_model_metadata.json
+  model_name: Jambi-Wind-Residual-RandomForest
+  champion_alias: champion
+
+evaluation:
+  numerical_tolerance_ms: 0.000001
+  require_mae_not_worse_than_raw: true
+  require_mae_not_worse_than_reference: true
+  require_rmse_not_worse_than_reference: true
+  require_absolute_bias_not_worse_than_reference: true
+
+registry:
+  target_stage: Staging
+  candidate_alias: staging-candidate
+  auto_promote_champion: false

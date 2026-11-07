@@ -27,6 +27,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 | 05 | Versioning dataset dengan DVC | [LK05](docs/LK05-dataset-versioning.md) |
 | 06 | Training dan perbandingan tiga Random Forest di MLflow | [LK06](docs/LK06-experiment-tracking.md) |
 | 07 | Registry V1/V2, simulasi lifecycle, dan inferensi | [LK07](docs/LK07-model-registry.md) |
+| 08 | Code-triggered testing, retraining, evaluation, dan Model Registry | [LK08](docs/LK08-code-as-trigger.md) |
 
 ## Bagian yang sudah diimplementasikan
 

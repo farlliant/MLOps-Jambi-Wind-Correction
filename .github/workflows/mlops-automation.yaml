@@ -1,0 +1,167 @@
+name: LK08 Code as a Trigger
+
+on:
+  pull_request:
+    branches: [main]
+
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  testing:
+    name: 1 - Automated Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-lk08.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-lk08.txt
+          python -m pip check
+
+      - name: Validate Python syntax
+        run: |
+          python -m compileall -q \
+            train.py \
+            src/lk08_policy.py \
+            src/lk08_evaluate.py \
+            src/lk08_register.py \
+            tests/test_lk08_policy.py
+
+      - name: Run automated unit tests
+        run: |
+          python -m pytest -v tests/
+
+  train-evaluate-register:
+    name: 2 - DVC, Training, Evaluation, Registry
+    needs: testing
+
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    concurrency:
+      group: lk08-model-registry
+      cancel-in-progress: false
+
+    env:
+      MLFLOW_TRACKING_URI: https://dagshub.com/farlliant/MLOps-Jambi-Wind-Correction.mlflow
+      MLFLOW_TRACKING_USERNAME: farlliant
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+      MLFLOW_REPORT_DIR: data/reports/lk08
+      MLFLOW_EXPERIMENT_NAME: LK08-Jambi-Wind-Code-Triggered
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-lk08.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-lk08.txt
+          python -m pip check
+
+      - name: Verify configuration
+        shell: bash
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          test -n "$DAGSHUB_TOKEN" || {
+            echo "[FAIL] DAGSHUB_TOKEN is missing"
+            exit 1
+          }
+
+          test -n "$MLFLOW_TRACKING_URI" || {
+            echo "[FAIL] MLFLOW_TRACKING_URI is missing"
+            exit 1
+          }
+
+          dvc remote list
+
+          echo "[PASS] Configuration verified"
+
+      - name: Configure DVC HTTPS authentication
+        shell: bash
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc remote modify --local dagshub auth basic
+          dvc remote modify --local dagshub user farlliant
+          dvc remote modify --local dagshub password "$DAGSHUB_TOKEN"
+
+          echo "[PASS] DVC HTTPS authentication configured"
+
+      - name: Restore training dataset using DVC
+        shell: bash
+        run: |
+          dvc pull \
+            data/versioned/lk06_training_dataset.csv.dvc \
+            -r dagshub
+
+          test -s \
+            data/versioned/lk06_training_dataset.csv
+
+          dvc status data/versioned/lk06_training_dataset.csv.dvc
+
+          echo "[PASS] Versioned dataset restored"
+
+      - name: Automated model retraining
+        shell: bash
+        run: |
+          python train.py
+
+          test -s \
+            data/reports/lk08/best_model_metadata.json
+
+          echo "[PASS] Automated training completed"
+
+      - name: Automated evaluation and validation gate
+        shell: bash
+        run: |
+          python -m src.lk08_evaluate
+
+          echo "[PASS] Model validation completed"
+
+      - name: Register approved model to Staging
+        shell: bash
+        run: |
+          python -m src.lk08_register
+
+          echo "[PASS] MLflow Staging registration completed"
+
+      - name: Upload LK08 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lk08-evidence-${{ github.run_id }}
+          path: data/reports/lk08/
+          if-no-files-found: warn
+          retention-days: 14

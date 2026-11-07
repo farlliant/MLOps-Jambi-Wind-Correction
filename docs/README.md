@@ -1,6 +1,6 @@
 # Catatan pengembangan per Lembar Kerja
 
-Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correction MLOps** dari LK01 sampai LK07. Aku pisahkan per tahap supaya README utama tidak terlalu panjang dan keputusan teknis di setiap LK lebih mudah dicari lagi.
+Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correction MLOps** dari LK01 sampai LK08. Aku pisahkan per tahap supaya README utama tidak terlalu panjang dan keputusan teknis di setiap LK lebih mudah dicari lagi.
 
 | LK | Fokus | Dokumentasi |
 |---|---|---|
@@ -11,6 +11,7 @@ Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correct
 | 05 | Versioning dataset dengan DVC dan Git | [LK05 — Dataset versioning](LK05-dataset-versioning.md) |
 | 06 | Training, eksperimen Random Forest, dan MLflow | [LK06 — Experiment tracking](LK06-experiment-tracking.md) |
 | 07 | Model Registry, stage management, dan inferensi | [LK07 — Model Registry](LK07-model-registry.md) |
+| 08 | Otomatisasi testing, training, evaluasi, dan Registry | [LK08 — Code as a Trigger](LK08-code-as-trigger.md) |
 
 ## Gambaran alurnya
 
