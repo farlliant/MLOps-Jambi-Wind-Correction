@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import mlflow
@@ -23,10 +24,18 @@ from sklearn.pipeline import Pipeline
 # ============================================================
 
 DATA_PATH = Path("data/versioned/lk06_training_dataset.csv")
-REPORT_DIR = Path("data/reports/lk06")
+REPORT_DIR = Path(
+    os.getenv("MLFLOW_REPORT_DIR", "data/reports/lk06")
+)
 
-TRACKING_URI = "http://127.0.0.1:5000"
-EXPERIMENT_NAME = "LK06-Jambi-Wind-Residual-Correction"
+TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "http://127.0.0.1:5000"
+)
+EXPERIMENT_NAME = os.getenv(
+    "MLFLOW_EXPERIMENT_NAME",
+    "LK06-Jambi-Wind-Residual-Correction"
+)
 
 RANDOM_SEED = 42
 
