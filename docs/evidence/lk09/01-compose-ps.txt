@@ -1,0 +1,3 @@
+NAME                    IMAGE                 COMMAND                  SERVICE   CREATED         STATUS                   PORTS
+jambi-wind-lk09-api-1   jambi-wind-lk09-api   "uvicorn src.lk09_ap…"   api       3 minutes ago   Up 3 minutes (healthy)   127.0.0.1:8000->8000/tcp
+jambi-wind-lk09-db-1    postgres:16-alpine    "docker-entrypoint.s…"   db        3 minutes ago   Up 3 minutes (healthy)   5432/tcp

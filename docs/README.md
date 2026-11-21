@@ -1,6 +1,6 @@
 # Catatan pengembangan per Lembar Kerja
 
-Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correction MLOps** dari LK01 sampai LK08. Aku pisahkan per tahap supaya README utama tidak terlalu panjang dan keputusan teknis di setiap LK lebih mudah dicari lagi.
+Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correction MLOps** dari LK01 sampai LK09. Aku pisahkan per tahap supaya README utama tidak terlalu panjang dan keputusan teknis di setiap LK lebih mudah dicari lagi.
 
 | LK | Fokus | Dokumentasi |
 |---|---|---|
@@ -12,6 +12,7 @@ Dokumentasi di folder ini mencatat proses pengerjaan proyek **Jambi Wind Correct
 | 06 | Training, eksperimen Random Forest, dan MLflow | [LK06 — Experiment tracking](LK06-experiment-tracking.md) |
 | 07 | Model Registry, stage management, dan inferensi | [LK07 — Model Registry](LK07-model-registry.md) |
 | 08 | Otomatisasi testing, training, evaluasi, dan Registry | [LK08 — Code as a Trigger](LK08-code-as-trigger.md) |
+| 09 | Docker Compose, API inferensi, PostgreSQL, dan persistensi | [LK09 — Docker Compose](LK09-docker-compose.md) |
 
 ## Gambaran alurnya
 
@@ -31,6 +32,6 @@ LK06  Training + MLflow experiment tracking
 LK07  Model Registry + simulasi lifecycle + inferensi
 ```
 
-**Yang penting dibedakan:** LK01 dan sebagian LK03 masih berupa studi/rancangan. LK04–LK07 sudah punya implementasi yang dapat ditelusuri ke kode, metadata, dan riwayat Pull Request. Namun, model serving, pemantauan drift secara operasional, dan continuous training otomatis **belum** menjadi fitur yang berjalan end-to-end.
+**Yang penting dibedakan:** LK01 dan sebagian LK03 masih berupa studi/rancangan. LK04–LK09 sudah punya implementasi yang dapat ditelusuri ke kode, metadata, dan riwayat Pull Request. API inferensi sudah berjalan melalui Docker Compose pada LK09, sedangkan monitoring drift operasional dan continuous training otomatis masih menjadi rencana.
 
 Untuk melihat progres implementasi terbaru, mulai dari [README utama](../README.md), lalu buka dokumentasi LK terkait. Semua contoh perintah dalam folder ini diasumsikan dijalankan dari **root repository**.

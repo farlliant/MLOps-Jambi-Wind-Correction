@@ -28,6 +28,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 | 06 | Training dan perbandingan tiga Random Forest di MLflow | [LK06](docs/LK06-experiment-tracking.md) |
 | 07 | Registry V1/V2, simulasi lifecycle, dan inferensi | [LK07](docs/LK07-model-registry.md) |
 | 08 | Code-triggered testing, retraining, evaluation, dan Model Registry | [LK08](docs/LK08-code-as-trigger.md) |
+| 09 | Docker Compose, FastAPI inference, PostgreSQL, dan persistensi | [LK09](docs/LK09-docker-compose.md) |
 
 ## Bagian yang sudah diimplementasikan
 
@@ -36,7 +37,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 - **Training:** tiga konfigurasi Random Forest dilatih dan dibandingkan menggunakan split waktu, lalu dicatat di MLflow.
 - **Model Registry:** versi 1 dan 2 telah dikelola, dengan `champion` pada V1 dan `challenger` pada V2; inferensi sintetis melalui alias sudah diuji.
 
-Beberapa komponen seperti serving API, monitoring drift, dan continuous training otomatis **masih rencana**, bukan fitur yang sudah berjalan end-to-end.
+Serving API FastAPI dan database PostgreSQL telah diimplementasikan serta diuji melalui Docker Compose pada LK09. Monitoring drift dan continuous training otomatis masih merupakan rencana.
 
 ## Ringkasan hasil model terakhir
 
@@ -71,7 +72,19 @@ Perintah Registry/inferensi memerlukan **MLflow tracking server dan artefak mode
 
 ## Teknologi
 
-Python, pandas, NumPy, scikit-learn, Open-Meteo API, GitHub Actions, DVC, MLflow, serta GitHub Codespaces. FastAPI, Docker, Airflow, dan monitoring operasional merupakan arah pengembangan berikutnya.
+Python, pandas, NumPy, scikit-learn, Open-Meteo API, GitHub Actions, DVC, MLflow, GitHub Codespaces, FastAPI, Docker Compose, dan PostgreSQL. Airflow serta monitoring operasional masih merupakan arah pengembangan.
+
+## Menjalankan LK09 melalui Docker Compose
+
+Isi `.env` dari template `.env.example` dengan password PostgreSQL dan access token DagsHub (jangan commit `.env`). Dari root repository:
+
+```bash
+docker compose up -d --build --wait --wait-timeout 240
+docker compose ps
+curl -fsS http://127.0.0.1:8000/health
+```
+
+Perintah tersebut menjalankan FastAPI dan PostgreSQL sebagai dua service di custom bridge network, dengan named volume untuk riwayat prediksi. Lihat [dokumentasi LK09](docs/LK09-docker-compose.md) untuk konfigurasi, pengujian inferensi, dan evidence persistensi.
 
 ## Lisensi
 

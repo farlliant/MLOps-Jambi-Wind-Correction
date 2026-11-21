@@ -1,0 +1,7 @@
+{
+    "model_uri": "models:/Jambi-Wind-Residual-RandomForest@staging-candidate",
+    "model_version": "1",
+    "model_alias": "staging-candidate",
+    "source": "DagsHub MLflow Model Registry",
+    "operational_approval": "not_approved"
+}
