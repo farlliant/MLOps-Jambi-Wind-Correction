@@ -1,0 +1,13 @@
+{
+    "count": 1,
+    "records": [
+        {
+            "id": 1,
+            "created_at": "2026-11-21T16:16:19.745330+00:00",
+            "raw_wind_ms": 2.4,
+            "predicted_residual_ms": -0.08354861607282686,
+            "corrected_wind_ms": 2.316451383927173,
+            "model_version": "1"
+        }
+    ]
+}
