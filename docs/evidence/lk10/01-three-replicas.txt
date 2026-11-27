@@ -1,0 +1,4 @@
+NAME                              IMAGE                           COMMAND                  SERVICE         CREATED              STATUS                        PORTS
+jambi-wind-lk09-model-serving-1   jambi-wind-lk10-mlflow:latest   "python -c 'from mlf…"   model-serving   22 minutes ago       Up 22 minutes (healthy)       127.0.0.1:32768->8080/tcp
+jambi-wind-lk09-model-serving-2   jambi-wind-lk10-mlflow:latest   "python -c 'from mlf…"   model-serving   22 minutes ago       Up 22 minutes (healthy)       127.0.0.1:32769->8080/tcp
+jambi-wind-lk09-model-serving-3   jambi-wind-lk10-mlflow:latest   "python -c 'from mlf…"   model-serving   About a minute ago   Up About a minute (healthy)   127.0.0.1:32771->8080/tcp

@@ -29,6 +29,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 | 07 | Registry V1/V2, simulasi lifecycle, dan inferensi | [LK07](docs/LK07-model-registry.md) |
 | 08 | Code-triggered testing, retraining, evaluation, dan Model Registry | [LK08](docs/LK08-code-as-trigger.md) |
 | 09 | Docker Compose, FastAPI inference, PostgreSQL, dan persistensi | [LK09](docs/LK09-docker-compose.md) |
+| 10 | MLflow Models REST Serving dan tiga replika Docker Compose | [LK10](docs/LK10-mlflow-model-serving.md) |
 
 ## Bagian yang sudah diimplementasikan
 
@@ -37,7 +38,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 - **Training:** tiga konfigurasi Random Forest dilatih dan dibandingkan menggunakan split waktu, lalu dicatat di MLflow.
 - **Model Registry:** versi 1 dan 2 telah dikelola, dengan `champion` pada V1 dan `challenger` pada V2; inferensi sintetis melalui alias sudah diuji.
 
-Serving API FastAPI dan database PostgreSQL telah diimplementasikan serta diuji melalui Docker Compose pada LK09. Monitoring drift dan continuous training otomatis masih merupakan rencana.
+Serving API FastAPI dan PostgreSQL telah diuji melalui Docker Compose pada LK09. LK10 menambahkan REST API MLflow Models serta tiga replika serving yang diuji secara independen. Monitoring drift dan continuous training otomatis masih merupakan rencana.
 
 ## Ringkasan hasil model terakhir
 
@@ -85,6 +86,47 @@ curl -fsS http://127.0.0.1:8000/health
 ```
 
 Perintah tersebut menjalankan FastAPI dan PostgreSQL sebagai dua service di custom bridge network, dengan named volume untuk riwayat prediksi. Lihat [dokumentasi LK09](docs/LK09-docker-compose.md) untuk konfigurasi, pengujian inferensi, dan evidence persistensi.
+
+## Menjalankan LK10: MLflow Models Serving dan Scaling
+
+LK10 melayani model melalui endpoint native MLflow `/invocations` dan menambahkan tiga replika `model-serving` pada Compose tanpa menghapus layanan LK09. Pastikan `.env` dan akses model DagsHub tersedia, serta environment Python 3.11 dan Docker aktif.
+
+```bash
+# Dari root repository; model sumber Version 2 pada Staging
+source .venv/bin/activate
+python -m src.lk10_model_ops status
+python -m src.lk10_model_ops download
+
+# Buat image model (sekali per perubahan artefak)
+mlflow models build-docker --model-uri .lk10/model --name jambi-wind-lk10-mlflow --env-manager virtualenv
+
+# Definisi service model-serving sudah berada di docker-compose.yaml
+# Jika service belum ditambahkan pada clone lama, jalankan:
+# python lk10_apply_compose.py
+
+docker compose up -d --wait --wait-timeout 600 model-serving
+docker compose ps model-serving
+python -m src.lk10_test_serving --all-replicas
+```
+
+Cari port host masing-masing replika (dinamis):
+
+```bash
+docker compose port --index 1 model-serving 8080
+docker compose port --index 2 model-serving 8080
+docker compose port --index 3 model-serving 8080
+```
+
+Contoh mengganti jumlah replika dari tiga ke dua, lalu mengembalikan menjadi tiga:
+
+```bash
+docker compose up -d --no-deps --scale model-serving=2 model-serving
+docker compose up -d --no-deps --scale model-serving=3 model-serving
+```
+
+Registry Production demonstrasi LK10 adalah salinan model sumber Version 2 yang ditaruh pada model terpisah `Jambi-Wind-Residual-RandomForest-LK10-Demo` Version 1; model asli tidak dipromosikan dan LK09 tetap memakai Staging. Untuk serving demo Production pada port 5002: `python -m src.lk10_registry_demo serve`, lalu `python -m src.lk10_test_serving --url http://127.0.0.1:5002`. Ini simulasi akademik, bukan persetujuan meteorologi operasional.
+
+Lihat [dokumentasi LK10](docs/LK10-mlflow-model-serving.md) serta [evidence LK10](docs/evidence/lk10/).
 
 ## Lisensi
 

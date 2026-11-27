@@ -1,0 +1,9 @@
+[PASS] DagsHub MLflow registry is reachable
+Model: Jambi-Wind-Residual-RandomForest
+Alias: staging-candidate
+Version: 2
+Stage: Staging
+Source run: 007309b8db124732804cbdea3acda948
+Model URI: models:/Jambi-Wind-Residual-RandomForest@staging-candidate
+[NOTE] This is not Production. LK09 requires Staging: do not promote this version in place.
+[NOTE] LK10 local serving and scaling can be tested without altering Registry lifecycle.

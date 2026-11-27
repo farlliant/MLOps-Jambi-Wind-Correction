@@ -1,0 +1,10 @@
+{
+  "endpoint": "http://127.0.0.1:5002",
+  "http_status": 200,
+  "model_type": "MLflow pyfunc residual regressor",
+  "raw_wind_ms": 2.4,
+  "predicted_residual_ms": -0.08354861607282679,
+  "corrected_wind_ms": 2.316451383927173,
+  "test_input": "synthetic"
+}
+[PASS] MLflow Models REST inference
