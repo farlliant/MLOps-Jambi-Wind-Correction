@@ -41,6 +41,29 @@ services:
       retries: 12
       start_period: 180s
 
+
+  # LK10: built separately with `mlflow models build-docker`.
+  # Three replicas share a model image; each gets a random loopback host port.
+  model-serving:
+    image: jambi-wind-lk10-mlflow:latest
+    restart: unless-stopped
+    environment:
+      MLFLOW_MODELS_WORKERS: "1"
+    networks:
+      - wind-network
+    ports:
+      - target: 8080
+        host_ip: 127.0.0.1
+        protocol: tcp
+    deploy:
+      replicas: 3
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/ping', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
 volumes:
   postgres_data:
 

@@ -103,3 +103,5 @@ data/reports/lk07/*
 !data/reports/lk07/inference_champion.json
 
 !.env.example
+
+.lk10/

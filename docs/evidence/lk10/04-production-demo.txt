@@ -1,0 +1,8 @@
+[PASS] Verified source: models:/Jambi-Wind-Residual-RandomForest/2
+Source lifecycle: Staging (unchanged)
+Source run: 007309b8db124732804cbdea3acda948
+Academic demonstration Registry: Jambi-Wind-Residual-RandomForest-LK10-Demo
+Demo version: 1
+Demo stage: Production
+Demo source: models:/Jambi-Wind-Residual-RandomForest/2
+Demo URI: models:/Jambi-Wind-Residual-RandomForest-LK10-Demo/Production
