@@ -1,0 +1,8 @@
+NAME                              IMAGE                           COMMAND                  SERVICE         CREATED         STATUS                    PORTS
+jambi-wind-lk09-api-1             jambi-wind-lk09-api             "uvicorn src.lk09_ap…"   api             6 days ago      Up 10 minutes (healthy)   127.0.0.1:8000->8000/tcp
+jambi-wind-lk09-db-1              postgres:16-alpine              "docker-entrypoint.s…"   db              6 days ago      Up 10 minutes (healthy)   5432/tcp
+jambi-wind-lk09-grafana-1         grafana/grafana:12.1.0          "/run.sh"                grafana         6 minutes ago   Up 6 minutes              127.0.0.1:3000->3000/tcp
+jambi-wind-lk09-model-serving-1   jambi-wind-lk10-mlflow:latest   "python /opt/lk11_pr…"   model-serving   6 minutes ago   Up 6 minutes (healthy)    127.0.0.1:32771->8080/tcp, 127.0.0.1:32772->8081/tcp
+jambi-wind-lk09-model-serving-2   jambi-wind-lk10-mlflow:latest   "python /opt/lk11_pr…"   model-serving   6 minutes ago   Up 6 minutes (healthy)    127.0.0.1:32773->8080/tcp, 127.0.0.1:32774->8081/tcp
+jambi-wind-lk09-model-serving-3   jambi-wind-lk10-mlflow:latest   "python /opt/lk11_pr…"   model-serving   6 minutes ago   Up 6 minutes (healthy)    127.0.0.1:32775->8080/tcp, 127.0.0.1:32776->8081/tcp
+jambi-wind-lk09-prometheus-1      prom/prometheus:v3.5.0          "/bin/prometheus --c…"   prometheus      6 minutes ago   Up 6 minutes              127.0.0.1:9090->9090/tcp

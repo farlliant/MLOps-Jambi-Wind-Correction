@@ -1,0 +1,22 @@
+[INFO] baseline: synthetic wind mean=2.4 m/s, duration=75s, 3 concurrent clients
+[
+  {
+    "replica": 1,
+    "endpoint": "http://127.0.0.1:32772",
+    "success": 75,
+    "failed": 0
+  },
+  {
+    "replica": 2,
+    "endpoint": "http://127.0.0.1:32774",
+    "success": 75,
+    "failed": 0
+  },
+  {
+    "replica": 3,
+    "endpoint": "http://127.0.0.1:32776",
+    "success": 75,
+    "failed": 0
+  }
+]
+[PASS] Actual inference requests succeeded on all three replicas
