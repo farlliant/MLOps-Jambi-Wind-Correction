@@ -1,0 +1,748 @@
+{
+  "uid": "lk11-jambi",
+  "title": "LK11 | Jambi Wind Model Observability",
+  "tags": [
+    "MLOps",
+    "LK11",
+    "synthetic-demo"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Healthy scrape targets",
+      "description": "Target: 3 healthy replicas",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(up{job=\"mlflow-model\"})",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Drift flags per replica",
+      "description": "0 normal; 1 shifted; no data until at least 20 samples",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_drift_flag{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Throughput per replica",
+      "description": "Actual observed inference requests per second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(instance)(rate(lk11_inference_requests_total{job=\"mlflow-model\"}[30s]))",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Inference latency p95",
+      "description": "Proxy-to-MLflow round-trip; histogram estimate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(instance,le)(rate(lk11_inference_duration_seconds_bucket{job=\"mlflow-model\"}[30s])))",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "CPU usage per container",
+      "description": "CPU cores consumed; cgroup includes model and proxy",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(lk11_container_cpu_seconds_total{job=\"mlflow-model\"}[30s])",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "RAM per container",
+      "description": "Container cgroup memory usage",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_container_memory_bytes{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Input wind mean vs synthetic baseline",
+      "description": "Rolling last 30 successful requests; baseline 2.4 m/s",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_input_wind_mean_ms{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "lk11_input_baseline_ms{job=\"mlflow-model\"}",
+          "legendFormat": "baseline / threshold",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocityms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Predicted residual (rolling mean)",
+      "description": "Model output, not measured accuracy",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_prediction_residual_mean_ms{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocityms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Corrected wind (rolling mean)",
+      "description": "Calculated from raw input + residual",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_corrected_wind_mean_ms{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocityms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Input shift vs drift threshold",
+      "description": "Absolute mean shift; demo threshold 1 m/s",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_input_shift_ms{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "lk11_drift_threshold_ms{job=\"mlflow-model\"}",
+          "legendFormat": "baseline / threshold",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "velocityms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "HTTP status by replica",
+      "description": "Success/error rates from observed traffic",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(instance,status)(rate(lk11_inference_requests_total{job=\"mlflow-model\"}[30s]))",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Rolling window sample count",
+      "description": "At least 20 observations before drift classification",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "lk11-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "lk11_window_samples{job=\"mlflow-model\"}",
+          "legendFormat": "{{instance}} {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "lk11-prometheus"
+          },
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    }
+  ]
+}

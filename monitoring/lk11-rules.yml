@@ -1,0 +1,25 @@
+groups:
+  - name: lk11-model-monitoring
+    rules:
+      - alert: SyntheticInputDrift
+        expr: lk11_drift_flag{job="mlflow-model"} == 1
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: Synthetic input mean shifted on {{ $labels.instance }}
+          description: Rolling input mean differs by at least 1 m/s from the synthetic baseline. Investigate; this is not proof of model decay.
+      - alert: ModelMetricsTargetDown
+        expr: up{job="mlflow-model"} == 0
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: Model metrics scrape failed on {{ $labels.instance }}
+      - alert: ModelReplicaCountBelowThree
+        expr: (sum(up{job="mlflow-model"}) or vector(0)) < 3
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: Fewer than three model metrics targets are up

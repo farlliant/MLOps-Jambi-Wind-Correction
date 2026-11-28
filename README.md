@@ -30,6 +30,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 | 08 | Code-triggered testing, retraining, evaluation, dan Model Registry | [LK08](docs/LK08-code-as-trigger.md) |
 | 09 | Docker Compose, FastAPI inference, PostgreSQL, dan persistensi | [LK09](docs/LK09-docker-compose.md) |
 | 10 | MLflow Models REST Serving dan tiga replika Docker Compose | [LK10](docs/LK10-mlflow-model-serving.md) |
+| 11 | Prometheus, Grafana, monitoring tiga replika, dan simulasi drift | [LK11](docs/LK11-monitoring.md) |
 
 ## Bagian yang sudah diimplementasikan
 
@@ -38,7 +39,7 @@ Pengerjaan dilakukan bertahap mengikuti lembar kerja mata kuliah MLOps. Penjelas
 - **Training:** tiga konfigurasi Random Forest dilatih dan dibandingkan menggunakan split waktu, lalu dicatat di MLflow.
 - **Model Registry:** versi 1 dan 2 telah dikelola, dengan `champion` pada V1 dan `challenger` pada V2; inferensi sintetis melalui alias sudah diuji.
 
-Serving API FastAPI dan PostgreSQL telah diuji melalui Docker Compose pada LK09. LK10 menambahkan REST API MLflow Models serta tiga replika serving yang diuji secara independen. Monitoring drift dan continuous training otomatis masih merupakan rencana.
+Serving API FastAPI dan PostgreSQL telah diuji melalui Docker Compose pada LK09. LK10 menambahkan REST API MLflow Models serta tiga replika serving yang diuji secara independen. LK11 menambahkan Prometheus, Grafana, dan deteksi perubahan mean input sintetis pada tiga replika. Monitoring akurasi berbasis reference aktual dan continuous training otomatis masih merupakan rencana.
 
 ## Ringkasan hasil model terakhir
 
@@ -77,10 +78,10 @@ Python, pandas, NumPy, scikit-learn, Open-Meteo API, GitHub Actions, DVC, MLflow
 
 ## Menjalankan LK09 melalui Docker Compose
 
-Isi `.env` dari template `.env.example` dengan password PostgreSQL dan access token DagsHub (jangan commit `.env`). Dari root repository:
+Isi `.env` dari template `.env.example` dengan password PostgreSQL, access token DagsHub, serta variabel password Grafana yang disyaratkan konfigurasi Compose LK11 (jangan commit `.env`). Dari root repository:
 
 ```bash
-docker compose up -d --build --wait --wait-timeout 240
+docker compose up -d --build --wait --wait-timeout 240 api db
 docker compose ps
 curl -fsS http://127.0.0.1:8000/health
 ```
@@ -127,6 +128,32 @@ docker compose up -d --no-deps --scale model-serving=3 model-serving
 Registry Production demonstrasi LK10 adalah salinan model sumber Version 2 yang ditaruh pada model terpisah `Jambi-Wind-Residual-RandomForest-LK10-Demo` Version 1; model asli tidak dipromosikan dan LK09 tetap memakai Staging. Untuk serving demo Production pada port 5002: `python -m src.lk10_registry_demo serve`, lalu `python -m src.lk10_test_serving --url http://127.0.0.1:5002`. Ini simulasi akademik, bukan persetujuan meteorologi operasional.
 
 Lihat [dokumentasi LK10](docs/LK10-mlflow-model-serving.md) serta [evidence LK10](docs/evidence/lk10/).
+
+## Menjalankan LK11: Prometheus dan Grafana
+
+LK11 menambahkan monitoring pada tiga replika MLflow. Port internal 8080 tetap melayani API native LK10; request yang dipantau harus menggunakan proxy internal 8081. Prometheus melakukan DNS discovery dan scraping `/metrics` setiap 5 detik. Grafana memuat dashboard 12 panel secara otomatis.
+
+Pastikan `.env` lengkap (termasuk `LK11_GRAFANA_PASSWORD`), Python environment aktif, dan image `jambi-wind-lk10-mlflow:latest` sudah dibangun sesuai LK10. Pada konfigurasi final, tidak perlu menjalankan ulang `lk11_apply_compose.py`.
+
+```bash
+source .venv/bin/activate
+docker compose config --quiet
+docker compose up -d --wait --wait-timeout 600 model-serving prometheus grafana
+python -m src.lk11_check_monitoring --expect targets
+```
+
+Gunakan port 3000 untuk Grafana (user `admin`, password lokal saat inisialisasi) dan port 9090 untuk Prometheus (`/targets`, `/alerts`). Di Codespaces gunakan forwarded address Private. Dashboard berada di Dashboards → MLOps → LK11 | Jambi Wind Model Observability.
+
+```bash
+python -m src.lk11_workload --phase baseline --seconds 75
+python -m src.lk11_check_monitoring --expect baseline
+python -m src.lk11_workload --phase shift --seconds 75
+python -m src.lk11_check_monitoring --expect shift
+python -m src.lk11_workload --phase recovery --seconds 75
+python -m src.lk11_check_monitoring --expect recovery
+```
+
+Hasil pengujian 28 November 2026: 675 request sukses, 0 gagal, tiga target UP, drift flags 0 → 1 → 0 pada seluruh replika dan alert drift firing → inactive. Deteksi ini menggunakan perubahan mean input sintetis; bukan bukti penurunan akurasi model atau kapasitas produksi. Lihat [dokumentasi LK11](docs/LK11-monitoring.md) dan [evidence](docs/evidence/lk11/).
 
 ## Lisensi
 

@@ -48,23 +48,76 @@ services:
     image: jambi-wind-lk10-mlflow:latest
     restart: unless-stopped
     environment:
-      MLFLOW_MODELS_WORKERS: "1"
+      MLFLOW_MODELS_WORKERS: '1'
     networks:
-      - wind-network
+    - wind-network
     ports:
-      - target: 8080
-        host_ip: 127.0.0.1
-        protocol: tcp
+    - target: 8080
+      host_ip: 127.0.0.1
+      protocol: tcp
+    - target: 8081
+      host_ip: 127.0.0.1
+      protocol: tcp
     deploy:
       replicas: 3
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/ping', timeout=3)"]
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/ping',
+        timeout=3)
       interval: 15s
       timeout: 5s
       retries: 20
       start_period: 180s
+    entrypoint:
+    - python
+    - /opt/lk11_proxy.py
+    - python
+    - -c
+    - from mlflow.models import container as C; C._serve('virtualenv')
+    command: []
+    volumes:
+    - ./monitoring/lk11_proxy.py:/opt/lk11_proxy.py:ro
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.path=/prometheus
+    - --storage.tsdb.retention.time=2d
+    ports:
+    - 127.0.0.1:9090:9090
+    networks:
+    - wind-network
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    - ./monitoring/lk11-rules.yml:/etc/prometheus/lk11-rules.yml:ro
+    - prometheus_data:/prometheus
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    ports:
+    - 127.0.0.1:3000:3000
+    networks:
+    - wind-network
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${LK11_GRAFANA_PASSWORD:?set LK11_GRAFANA_PASSWORD
+        in .env}
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    depends_on:
+    - prometheus
+    volumes:
+    - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    - grafana_data:/var/lib/grafana
 
 volumes:
+  prometheus_data:
+  grafana_data:
   postgres_data:
 
 networks:
